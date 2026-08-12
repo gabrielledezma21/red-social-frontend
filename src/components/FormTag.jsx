@@ -3,9 +3,10 @@ import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { getAllTags } from "./functions/get/getAllTags";
 import { API_URL, apiEndpoints } from "../config/api";
 
+const EMPTY_TAGS = [];
 const tagName = (tag) => tag?.nameTag || tag?.name || String(tag || "");
 
-const FormTag = ({ show = false, onHide = () => {}, onTagsSelected, selectedTags = [], post }) => {
+const FormTag = ({ show = false, onHide = () => {}, onTagsSelected, selectedTags = EMPTY_TAGS, post }) => {
   const [tags, setTags] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [existingIds, setExistingIds] = useState([]);
