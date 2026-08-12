@@ -10,8 +10,8 @@ const FormComment = ({ post, user, onCommentCreated }) => {
         e.preventDefault();
 
         const trimmedContent = content.trim();
-        if (!trimmedContent) {
-            alert("Debes escribir un comentario.");
+        if (trimmedContent.length < 5 || trimmedContent.length > 500) {
+            alert("El comentario debe tener entre 5 y 500 caracteres.");
             return;
         }
 
@@ -36,10 +36,19 @@ const FormComment = ({ post, user, onCommentCreated }) => {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || "Error al crear el comentario");
+                const backendMessage = Array.isArray(errorData?.error)
+                    ? errorData.error.join(". ")
+                    : errorData?.error || errorData?.message;
+                throw new Error(backendMessage || "Error al crear el comentario");
             }
 
-            const comentarioCreado = await response.json();
+            const responseBody = await response.json();
+            const comentarioCreado = responseBody?.comment || responseBody;
+
+            if (!comentarioCreado?._id) {
+                throw new Error("El servidor no devolvió el comentario creado.");
+            }
+
             setContent("");
             onCommentCreated?.(comentarioCreado);
             window.dispatchEvent(new CustomEvent("nuevo-comentario-creado", {
@@ -64,7 +73,7 @@ const FormComment = ({ post, user, onCommentCreated }) => {
                 maxLength={500}
                 disabled={submitting}
             />
-            <Button variant="primary" type="submit" disabled={submitting || !content.trim()}>
+            <Button variant="primary" type="submit" disabled={submitting || content.trim().length < 5}>
                 {submitting ? "Publicando..." : "Comentar"}
             </Button>
         </Form>
