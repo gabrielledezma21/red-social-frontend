@@ -3,22 +3,7 @@ import { Card, Button } from 'react-bootstrap';
 import { useState, useContext } from "react";
 import FormEditarComment from "./FormEditarComment";
 import { UserContext } from "../context/UserContext";
-
-const formatCommentDate = (value) => {
-    if (!value) return "";
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-
-    return date.toLocaleString("es-AR", {
-        day: "numeric",
-        month: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-    });
-};
+import { formatDateTime } from "../utils/formatDateTime";
 
 const Comment = ({ comment, user: commentUser }) => {
     const { user: loggedUser } = useContext(UserContext);
@@ -44,7 +29,7 @@ const Comment = ({ comment, user: commentUser }) => {
                 <div>
                     <Card.Title className="mb-1 text-dark">@{commentUser?.nickName}</Card.Title>
                     <Card.Subtitle className="text-muted">
-                        {formatCommentDate(comment.fecha)}
+                        {formatDateTime(comment.fecha)}
                     </Card.Subtitle>
                 </div>
                 <div className="d-flex gap-2">
