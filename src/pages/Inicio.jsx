@@ -3,7 +3,6 @@ import { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { Container } from 'react-bootstrap';
 import HomeContent from '../components/home/HomeContent';
-import FormTag from '../components/FormTag';
 
 function Inicio() {
   //const [userComplete, setUserComplete] = useState(null);
@@ -31,7 +30,6 @@ function Inicio() {
           <FormPost user={user} />
         )}
         <HomeContent />
-        <FormTag />
       </div>
     </Container>
   );
