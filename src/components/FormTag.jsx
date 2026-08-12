@@ -99,7 +99,6 @@ const FormTag = ({ show = false, onHide = () => {}, onTagsSelected, selectedTags
           if (!response.ok) throw new Error("No se pudieron guardar los tags del post");
         }));
 
-        window.dispatchEvent(new Event("post-actualizado"));
         window.dispatchEvent(new Event("nuevo-post-creado"));
       }
 
