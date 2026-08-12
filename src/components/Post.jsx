@@ -5,7 +5,8 @@ import { useState, useContext } from "react";
 import CommentsModal from "./CommentsModal";
 import FormEditarPost from "./FormEditarPost";
 import { UserContext } from "../context/UserContext";
-import Tag from './Tag';\nimport { formatDateTime } from '../utils/formatDateTime';
+import Tag from './Tag';
+import { formatDateTime } from '../utils/formatDateTime';
 
 const Post = ({post, tags, user: postUser }) => {
   const [showModal, setShowModal] = useState(false);
