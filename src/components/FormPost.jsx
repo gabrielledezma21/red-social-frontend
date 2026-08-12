@@ -2,6 +2,7 @@ import { Card, Button, Form } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import FormTag from "./FormTag";
 import { API_URL, apiEndpoints } from "../config/api";
+import { formatDateTime } from "../utils/formatDateTime";
 
 const FormPost = ({ user }) => {
   const [content, setContent] = useState("");
@@ -20,15 +21,12 @@ const FormPost = ({ user }) => {
     event.preventDefault();
     const normalizedContent = content.trim();
 
-    if (!normalizedContent && imagenes.length === 0) {
-      alert("Debes escribir algo o subir una imagen.");
-      return;
-    }
-    if (normalizedContent.length > 0 && normalizedContent.length < 5) {
+    if (normalizedContent.length < 5) {
       alert("La publicación debe tener al menos 5 caracteres.");
       return;
     }
 
+    let createdPostId = null;
     setSubmitting(true);
     try {
       const responsePost = await fetch(`${API_URL}${apiEndpoints.posts}`, {
@@ -37,7 +35,6 @@ const FormPost = ({ user }) => {
         body: JSON.stringify({
           userId: user._id,
           content: normalizedContent,
-          fecha: currentTime.toISOString(),
         }),
       });
 
@@ -45,6 +42,8 @@ const FormPost = ({ user }) => {
       if (!responsePost.ok) {
         throw new Error(postBody.error || "Error al crear el post");
       }
+
+      createdPostId = postBody._id;
 
       await Promise.all(
         tags.map(async (tag) => {
@@ -74,6 +73,9 @@ const FormPost = ({ user }) => {
       setTags([]);
       window.dispatchEvent(new Event("nuevo-post-creado"));
     } catch (error) {
+      if (createdPostId) {
+        await fetch(`${API_URL}${apiEndpoints.posts}/${createdPostId}`, { method: "DELETE" }).catch(() => null);
+      }
       console.error("Error al publicar:", error);
       alert(error.message || "Ocurrió un error al intentar publicar.");
     } finally {
@@ -90,7 +92,7 @@ const FormPost = ({ user }) => {
               <div>
                 <Card.Title className="mb-1">@{user.nickName}</Card.Title>
                 <Card.Subtitle className="text-secondary small">
-                  {currentTime.toLocaleString()}
+                  {formatDateTime(currentTime)}
                 </Card.Subtitle>
               </div>
               <Button variant="outline-success" size="sm" type="button" onClick={() => setShowTagModal(true)}>
@@ -113,7 +115,16 @@ const FormPost = ({ user }) => {
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={(event) => setImagenes(Array.from(event.target.files))}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files);
+                  if (files.length > 5) {
+                    alert("Podés subir hasta 5 imágenes por publicación.");
+                    event.target.value = "";
+                    setImagenes([]);
+                    return;
+                  }
+                  setImagenes(files);
+                }}
               />
             </Form.Group>
             <Form.Control
@@ -129,7 +140,7 @@ const FormPost = ({ user }) => {
           </Card.Body>
 
           <Card.Footer className="bg-dark border-secondary p-3 text-center">
-            <Button variant="primary" type="submit" disabled={submitting || (!content.trim() && imagenes.length === 0)}>
+            <Button variant="primary" type="submit" disabled={submitting || content.trim().length < 5}>
               {submitting ? "Publicando..." : "Publicar"}
             </Button>
           </Card.Footer>
