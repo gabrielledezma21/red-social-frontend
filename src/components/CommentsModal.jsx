@@ -4,7 +4,7 @@ import FormComment from './FormComment';
 import { getFunctions } from './functions';
 import { useEffect, useState, useCallback } from 'react';
 
-const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
+const CommentsModal = ({ show, onHide, post, user, currentUser, onCommentsChanged }) => {
   const [commentsWithUsers, setCommentsWithUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,8 +47,7 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
     }
   }, [show, fetchUsersForComments]);
 
-  const handleCommentCreated = (response) => {
-    const createdComment = response?.comment || response?.data || response;
+  const handleCommentCreated = (createdComment) => {
     if (!createdComment?._id) {
       fetchUsersForComments();
       return;
@@ -58,7 +57,9 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
       if (previousComments.some((comment) => comment._id === createdComment._id)) {
         return previousComments;
       }
-      return [...previousComments, { ...createdComment, user: currentUser }];
+      const nextComments = [...previousComments, { ...createdComment, user: currentUser }];
+      onCommentsChanged?.(nextComments.map(({ user: _user, ...comment }) => comment));
+      return nextComments;
     });
   };
 
@@ -87,18 +88,22 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
                 comment={comment}
                 user={comment.user}
                 onDeleted={(commentId) => {
-                  setCommentsWithUsers((previousComments) =>
-                    previousComments.filter((item) => item._id !== commentId)
-                  );
+                  setCommentsWithUsers((previousComments) => {
+                    const nextComments = previousComments.filter((item) => item._id !== commentId);
+                    onCommentsChanged?.(nextComments.map(({ user: _user, ...comment }) => comment));
+                    return nextComments;
+                  });
                 }}
                 onUpdated={(updatedComment) => {
-                  setCommentsWithUsers((previousComments) =>
-                    previousComments.map((item) =>
+                  setCommentsWithUsers((previousComments) => {
+                    const nextComments = previousComments.map((item) =>
                       item._id === updatedComment._id
                         ? { ...item, ...updatedComment, user: item.user }
                         : item
-                    )
-                  );
+                    );
+                    onCommentsChanged?.(nextComments.map(({ user: _user, ...comment }) => comment));
+                    return nextComments;
+                  });
                 }}
               />
             ))
