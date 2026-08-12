@@ -5,6 +5,7 @@ import { getFunctions } from '../functions';
 
 const HomeContent = () => {
     const [posts, setPosts] = useState([]);
+
     useEffect(() => {
         const fetchPostsAndUsers = async () => {
             try {
@@ -24,13 +25,13 @@ const HomeContent = () => {
 
         fetchPostsAndUsers();
 
-        // Escuchar evento global
         const handler = () => fetchPostsAndUsers();
         window.addEventListener("nuevo-post-creado", handler);
+        window.addEventListener("nuevo-comentario-creado", handler);
 
-        // Limpieza
         return () => {
             window.removeEventListener("nuevo-post-creado", handler);
+            window.removeEventListener("nuevo-comentario-creado", handler);
         };
     }, []);
 
@@ -52,4 +53,3 @@ const HomeContent = () => {
 };
 
 export default HomeContent;
-
