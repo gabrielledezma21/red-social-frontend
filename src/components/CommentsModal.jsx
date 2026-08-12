@@ -86,6 +86,20 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
                 key={comment._id}
                 comment={comment}
                 user={comment.user}
+                onDeleted={(commentId) => {
+                  setCommentsWithUsers((previousComments) =>
+                    previousComments.filter((item) => item._id !== commentId)
+                  );
+                }}
+                onUpdated={(updatedComment) => {
+                  setCommentsWithUsers((previousComments) =>
+                    previousComments.map((item) =>
+                      item._id === updatedComment._id
+                        ? { ...item, ...updatedComment, user: item.user }
+                        : item
+                    )
+                  );
+                }}
               />
             ))
           ) : (
