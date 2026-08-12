@@ -30,18 +30,11 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
       if (!postResponse.ok) throw new Error(postBody.error || "Error al actualizar el post");
 
       if (images.length > 0) {
-        const previousImages = post.imagenes || [];
-        const deleteResults = await Promise.all(
-          previousImages
-            .filter((image) => image?._id)
-            .map((image) =>
-              fetch(`${API_URL}${apiEndpoints.archives}/${image._id}`, { method: "DELETE" }),
-            ),
-        );
-        if (deleteResults.some((response) => !response.ok)) {
-          throw new Error("No se pudieron reemplazar todas las imágenes anteriores");
+        if (images.length > 5) {
+          throw new Error("Podés subir hasta 5 imágenes por publicación");
         }
 
+        const previousImages = post.imagenes || [];
         const formData = new FormData();
         formData.append("postId", post._id);
         images.forEach((image) => formData.append("imagenes", image));
@@ -50,6 +43,17 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
           body: formData,
         });
         if (!uploadResponse.ok) throw new Error("Error al subir las nuevas imágenes");
+
+        const deleteResults = await Promise.all(
+          previousImages
+            .filter((image) => image?._id)
+            .map((image) =>
+              fetch(`${API_URL}${apiEndpoints.archives}/${image._id}`, { method: "DELETE" }),
+            ),
+        );
+        if (deleteResults.some((response) => !response.ok)) {
+          throw new Error("Las imágenes nuevas se guardaron, pero no se pudieron retirar todas las anteriores");
+        }
       }
 
       alert("¡Post actualizado exitosamente!");
@@ -101,7 +105,16 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={(event) => setImages(Array.from(event.target.files))}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files);
+                  if (files.length > 5) {
+                    alert("Podés subir hasta 5 imágenes por publicación.");
+                    event.target.value = "";
+                    setImages([]);
+                    return;
+                  }
+                  setImages(files);
+                }}
                 className="bg-dark text-light border-secondary"
               />
               <Form.Text className="text-muted">
