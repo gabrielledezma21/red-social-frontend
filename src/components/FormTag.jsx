@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
-import { getAllTags } from "./functions/get/getAllTags";
+import { getAllTags, invalidateTagsCache } from "./functions/get/getAllTags";
 import { API_URL, apiEndpoints } from "../config/api";
 
 const EMPTY_TAGS = [];
@@ -16,24 +16,40 @@ const FormTag = ({ show = false, onHide = () => {}, onTagsSelected, selectedTags
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
+  const postId = post?._id || "";
+  const initialTags = post?.tags || selectedTags;
+  const initialTagKey = initialTags
+    .map((tag) => (typeof tag === "string" ? tag : tag._id))
+    .filter(Boolean)
+    .sort()
+    .join(",");
+
   useEffect(() => {
-    if (!show) return;
+    if (!show) return undefined;
+    let active = true;
 
     const loadTags = async () => {
       setLoading(true);
       setError("");
-      const received = await getAllTags();
-      setTags(received || []);
-
-      const current = post?.tags || selectedTags;
-      const ids = current.map((tag) => (typeof tag === "string" ? tag : tag._id)).filter(Boolean);
-      setSelectedIds(ids);
-      setExistingIds(post ? ids : []);
-      setLoading(false);
+      try {
+        const received = await getAllTags();
+        if (!active) return;
+        setTags(received);
+        const ids = initialTagKey ? initialTagKey.split(",") : [];
+        setSelectedIds(ids);
+        setExistingIds(postId ? ids : []);
+      } catch (requestError) {
+        if (active) setError(requestError.message || "Error al cargar los tags");
+      } finally {
+        if (active) setLoading(false);
+      }
     };
 
     loadTags();
-  }, [show, post, selectedTags]);
+    return () => {
+      active = false;
+    };
+  }, [show, postId, initialTagKey]);
 
   const createTag = async () => {
     const nameTag = newTag.trim().replace(/^#/, "");
@@ -50,7 +66,8 @@ const FormTag = ({ show = false, onHide = () => {}, onTagsSelected, selectedTags
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "No se pudo crear el tag");
 
-      setTags((current) => [...current, body]);
+      invalidateTagsCache();
+      setTags((current) => Array.from(new Map([...current, body].map((tag) => [tag._id, tag])).values()));
       setSelectedIds((current) => [...new Set([...current, body._id])]);
       setNewTag("");
     } catch (requestError) {
