@@ -1,70 +1,71 @@
-import { Card, Button, Form } from 'react-bootstrap';
-import { useState, useEffect } from 'react';
-import { API_URL, apiEndpoints } from '../config/api'
+import { Button, Form } from 'react-bootstrap';
+import { useState } from 'react';
+import { API_URL, apiEndpoints } from '../config/api';
 
-const FormComment = ({ post, user }) => {
+const FormComment = ({ post, user, onCommentCreated }) => {
     const [content, setContent] = useState("");
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-        return () => clearInterval(timer);
-    }, []);
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!content.trim()) {
+        const trimmedContent = content.trim();
+        if (!trimmedContent) {
             alert("Debes escribir un comentario.");
             return;
         }
 
-        try {
-            // Crear el comentario
-            const nuevoComentario = {
-                postId: post._id,        // ← ID del post al que pertenece
-                userId: user._id,        // ← Usuario que comenta
-                content: content.trim() // ← Contenido del comentario
-            };
+        if (!post?._id || !user?._id) {
+            alert("Tu sesión no está disponible. Vuelve a iniciar sesión.");
+            return;
+        }
 
-            console.log("Payload del comentario:", nuevoComentario);
-            
+        try {
+            setSubmitting(true);
             const response = await fetch(`${API_URL}${apiEndpoints.comments}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(nuevoComentario)
+                body: JSON.stringify({
+                    postId: post._id,
+                    userId: user._id,
+                    content: trimmedContent
+                })
             });
 
-            if (!response.ok) throw new Error("Error al crear el comentario");
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || "Error al crear el comentario");
+            }
 
             const comentarioCreado = await response.json();
-            console.log("Comentario creado:", comentarioCreado);
-
-            alert("¡Comentario publicado con éxito!");
-            setContent(""); // Limpiar el formulario
-            
-            // Disparar evento para actualizar la UI
-            window.dispatchEvent(new Event("nuevo-comentario-creado"));
-            
+            setContent("");
+            onCommentCreated?.(comentarioCreado);
+            window.dispatchEvent(new CustomEvent("nuevo-comentario-creado", {
+                detail: { postId: post._id, comment: comentarioCreado }
+            }));
         } catch (error) {
             console.error("Error al comentar:", error);
-            alert("Ocurrió un error al intentar comentar.");
+            alert(error.message || "Ocurrió un error al intentar comentar.");
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <Form onSubmit={handleSubmit} >
+        <Form onSubmit={handleSubmit}>
             <Form.Control
                 type="text"
                 placeholder="Escribe tu comentario..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className='mb-3'
+                className="mb-3"
+                maxLength={500}
+                disabled={submitting}
             />
-            <Button variant="primary" type="submit">
-                Comentar
+            <Button variant="primary" type="submit" disabled={submitting || !content.trim()}>
+                {submitting ? "Publicando..." : "Comentar"}
             </Button>
         </Form>
     );
