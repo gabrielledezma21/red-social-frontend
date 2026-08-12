@@ -197,6 +197,7 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
                 show={showTagModal}
                 onHide={() => setShowTagModal(false)}
                 user={user}
+                post={post}
             />
         </>
     );
