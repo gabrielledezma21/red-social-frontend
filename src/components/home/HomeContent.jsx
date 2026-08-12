@@ -28,10 +28,12 @@ const HomeContent = () => {
         const handler = () => fetchPostsAndUsers();
         window.addEventListener("nuevo-post-creado", handler);
         window.addEventListener("nuevo-comentario-creado", handler);
+        window.addEventListener("comentarios-actualizados", handler);
 
         return () => {
             window.removeEventListener("nuevo-post-creado", handler);
             window.removeEventListener("nuevo-comentario-creado", handler);
+            window.removeEventListener("comentarios-actualizados", handler);
         };
     }, []);
 
