@@ -15,13 +15,11 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
 
         const commentsWithUserData = await Promise.all(
           post.comments.map(async (comment) => {
-            let userId;
+            const userId = typeof comment.userId === 'string'
+              ? comment.userId
+              : comment.userId?._id;
 
-            if (typeof comment.userId === 'string') {
-              userId = comment.userId;
-            } else if (comment.userId && comment.userId._id) {
-              userId = comment.userId._id;
-            } else {
+            if (!userId) {
               console.error("Formato de userId no reconocido:", comment.userId);
               return comment;
             }
@@ -32,9 +30,9 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
         );
 
         setCommentsWithUsers(commentsWithUserData);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching users for comments:", error);
+      } finally {
         setLoading(false);
       }
     } else {
@@ -43,22 +41,26 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
     }
   }, [post]);
 
-  // useEffect para cargar comentarios inicialmente
   useEffect(() => {
-    fetchUsersForComments();
-  }, [fetchUsersForComments]);
+    if (show) {
+      fetchUsersForComments();
+    }
+  }, [show, fetchUsersForComments]);
 
-  // useEffect para el event listener
-  useEffect(() => {
-    const handler = () => {
-      console.log("🔄 Recargando página...");
-      window.location.reload();
-    
-    };
+  const handleCommentCreated = (response) => {
+    const createdComment = response?.comment || response?.data || response;
+    if (!createdComment?._id) {
+      fetchUsersForComments();
+      return;
+    }
 
-    window.addEventListener("nuevo-comentario-creado", handler);
-    return () => window.removeEventListener("nuevo-comentario-creado", handler);
-  }, []);
+    setCommentsWithUsers((previousComments) => {
+      if (previousComments.some((comment) => comment._id === createdComment._id)) {
+        return previousComments;
+      }
+      return [...previousComments, { ...createdComment, user: currentUser }];
+    });
+  };
 
   return (
     <Modal show={show} onHide={onHide} size="lg" backdrop="static">
@@ -71,7 +73,7 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
       <Modal.Body className="bg-secondary text-light" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
         <div className="mb-4">
           <h6 className="text-light mb-3">
-            Comentarios ({commentsWithUsers?.length || 0}):
+            Comentarios ({commentsWithUsers.length}):
           </h6>
 
           {loading ? (
@@ -96,12 +98,16 @@ const CommentsModal = ({ show, onHide, post, user, currentUser }) => {
 
         <div className="mt-3 p-3 border border-light rounded bg-dark">
           <h6 className="text-light mb-3">Agregar un comentario:</h6>
-          <FormComment post={post} user={currentUser} />
+          <FormComment
+            post={post}
+            user={currentUser}
+            onCommentCreated={handleCommentCreated}
+          />
         </div>
       </Modal.Body>
 
       <Modal.Footer className="bg-dark">
-        <Button variant="danger" onClick={onHide}>
+        <Button variant="danger" type="button" onClick={onHide}>
           Cerrar
         </Button>
       </Modal.Footer>
