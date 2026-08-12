@@ -63,11 +63,13 @@ const ProfileContent = ({ activeTab }) => {
     window.addEventListener("nuevo-post-eliminado", handleReload);
     window.addEventListener("nuevo-post-creado", handleReload);
     window.addEventListener("nuevo-comment-eliminado", handleReload);
+    window.addEventListener("comentarios-actualizados", handleReload);
     return () => {
       window.removeEventListener("recargar-profile-content", handleReload)
       window.removeEventListener("nuevo-post-eliminado", handleReload);
       window.removeEventListener("nuevo-post-creado", handleReload);
       window.removeEventListener("nuevo-comment-eliminado", handleReload);
+      window.removeEventListener("comentarios-actualizados", handleReload);
     };
   }, [user._id]);
 
@@ -96,9 +98,22 @@ const ProfileContent = ({ activeTab }) => {
       {activeTab === 'comments' && (
         comments.length > 0 ? (
           comments.map((comment) => (
-            <Comment user={user}
+            <Comment
+              user={user}
               comment={comment}
               key={comment._id}
+              onDeleted={(commentId) =>
+                setComments((previousComments) =>
+                  previousComments.filter((item) => item._id !== commentId)
+                )
+              }
+              onUpdated={(updatedComment) =>
+                setComments((previousComments) =>
+                  previousComments.map((item) =>
+                    item._id === updatedComment._id ? updatedComment : item
+                  )
+                )
+              }
             />
           ))
         ) : (
