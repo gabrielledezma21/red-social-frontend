@@ -30,12 +30,12 @@ function App() {
   const [user, setUser] = useState(getStoredUser);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+    else localStorage.removeItem("user");
   }, [user]);
+
+  const privateRoute = (element) => user ? element : <Navigate to="/login" replace />;
+  const publicOnlyRoute = (element) => user ? <Navigate to="/" replace /> : element;
 
   return (
     <UsuariosProvider>
@@ -46,11 +46,11 @@ function App() {
             <main className="flex-grow-1">
               <Routes>
                 <Route path="/" element={<Inicio />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/registro" element={<Registro />} />
-                <Route path="/users/:userId" element={<Perfil />} />
-                <Route path="/editar-perfil" element={<PerfilEdit />} />
-                <Route path="/*" element={<Navigate to="/" />} />
+                <Route path="/login" element={publicOnlyRoute(<Login />)} />
+                <Route path="/registro" element={publicOnlyRoute(<Registro />)} />
+                <Route path="/users/:userId" element={privateRoute(<Perfil />)} />
+                <Route path="/editar-perfil" element={privateRoute(<PerfilEdit />)} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
             <Footer />
