@@ -5,12 +5,26 @@ import FormEditarComment from "./FormEditarComment";
 import { UserContext } from "../context/UserContext";
 import { formatDateTime } from "../utils/formatDateTime";
 
-const Comment = ({ comment, user: commentUser }) => {
+const Comment = ({ comment, user: commentUser, onDeleted, onUpdated }) => {
     const { user: loggedUser } = useContext(UserContext);
     const [editando, setEditando] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const commentUserId = typeof comment.userId === "string"
+        ? comment.userId
+        : comment.userId?._id;
+    const isOwner = Boolean(loggedUser?._id && loggedUser._id === commentUserId);
 
     const eliminarComment = async () => {
-        await deleteFunctions.deleteComment(comment._id);
+        try {
+            setDeleting(true);
+            const deletedComment = await deleteFunctions.deleteComment(comment._id);
+            if (deletedComment) {
+                onDeleted?.(comment._id);
+            }
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return editando ? (
@@ -18,38 +32,42 @@ const Comment = ({ comment, user: commentUser }) => {
             comment={comment}
             user={loggedUser}
             onCancel={() => setEditando(false)}
-            onSuccess={() => {
+            onSuccess={(updatedComment) => {
                 setEditando(false);
-                window.dispatchEvent(new Event("nuevo-comment-creado"));
+                onUpdated?.(updatedComment);
             }}
         />
     ) : (
         <Card className="w-100 w-md-75 w-lg-50 mx-auto my-5 bg-light text-dark border-dark" style={{ minHeight: '10rem', maxWidth: '60vw' }}>
-            <Card.Header className="d-flex justify-content-between align-items-center text-light gap-2">
+            <Card.Header className="d-flex justify-content-between align-items-center gap-2">
                 <div>
-                    <Card.Title className="mb-1 text-dark">@{commentUser?.nickName}</Card.Title>
+                    <Card.Title className="mb-1 text-dark">@{commentUser?.nickName || "Usuario"}</Card.Title>
                     <Card.Subtitle className="text-muted">
                         {formatDateTime(comment.fecha)}
                     </Card.Subtitle>
                 </div>
-                <div className="d-flex gap-2">
-                    <Button
-                        variant="warning"
-                        size="sm"
-                        onClick={() => setEditando(true)}
-                        className="w-100 w-md-auto"
-                    >
-                        Editar
-                    </Button>
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        className="w-100 w-md-auto"
-                        onClick={eliminarComment}
-                    >
-                        Eliminar
-                    </Button>
-                </div>
+                {isOwner && (
+                    <div className="d-flex gap-2">
+                        <Button
+                            variant="warning"
+                            size="sm"
+                            type="button"
+                            onClick={() => setEditando(true)}
+                            disabled={deleting}
+                        >
+                            Editar
+                        </Button>
+                        <Button
+                            variant="danger"
+                            size="sm"
+                            type="button"
+                            onClick={eliminarComment}
+                            disabled={deleting}
+                        >
+                            {deleting ? "Eliminando..." : "Eliminar"}
+                        </Button>
+                    </div>
+                )}
             </Card.Header>
             <Card.Body className="text-dark bg-light rounded">
                 <Card.Text className="text-justify">
