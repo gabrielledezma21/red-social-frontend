@@ -1,7 +1,7 @@
 import { deleteFunctions } from "./functions";
 import { API_URL } from '../config/api'
 import { Card, Button, Carousel, Row, Col } from "react-bootstrap";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import CommentsModal from "./CommentsModal";
 import FormEditarPost from "./FormEditarPost";
 import { UserContext } from "../context/UserContext";
@@ -12,11 +12,16 @@ const Post = ({post, tags, user: postUser }) => {
   const [showModal, setShowModal] = useState(false);
   const { user: loggedUser } = useContext(UserContext);
   const [editando, setEditando] = useState(false);
+  const [displayPost, setDisplayPost] = useState(post);
 
-  if (!post) return null;
+  useEffect(() => {
+    setDisplayPost(post);
+  }, [post]);
+
+  if (!displayPost) return null;
 
   // Validaciones para imágenes
-  const imagenes = post.imagenes || [];
+  const imagenes = displayPost.imagenes || [];
   const tieneImagenes = imagenes && imagenes.length > 0;
 
   // Funciones para manejar el modal
@@ -30,7 +35,7 @@ const Post = ({post, tags, user: postUser }) => {
   return editando ? (//Si se está editando, se muestra el formulario de edición
 
     <FormEditarPost
-      post={post}
+      post={displayPost}
       user={loggedUser}
       onCancel={() => setEditando(false)}
       onSuccess={() => {
@@ -54,7 +59,7 @@ const Post = ({post, tags, user: postUser }) => {
                   @{postUser?.nickName || "Usuario"}
                 </Card.Title>
                 <Card.Subtitle className="text-secondary small">
-                  {formatDateTime(post.fecha)}
+                  {formatDateTime(displayPost.fecha)}
                 </Card.Subtitle>
               </div>
             </Col>
@@ -167,13 +172,13 @@ const Post = ({post, tags, user: postUser }) => {
 
         <Card.Body className="text-light">
           <Card.Text className="text-light text-justify">
-            {post.content}
+            {displayPost.content}
           </Card.Text>
         </Card.Body>
 
         <Card.Footer className="d-flex justify-content-center align-items-center gap-2 text-light p-3">
           <Button variant="outline-primary" onClick={handleShowModal}>
-            Ver Comentarios ({post.comments?.length || 0})
+            Ver Comentarios ({displayPost.comments?.length || 0})
           </Button>
         </Card.Footer>
       </Card>
@@ -184,7 +189,10 @@ const Post = ({post, tags, user: postUser }) => {
         onHide={handleCloseModal}
         post={post}
         user={postUser}
-        currentUser={loggedUser} // Asumiendo que el usuario actual es el mismo que el autor del post
+        currentUser={loggedUser}
+        onCommentsChanged={(comments) =>
+          setDisplayPost((currentPost) => ({ ...currentPost, comments }))
+        }
       />
       {/* Fin del post normal */}
     </>
