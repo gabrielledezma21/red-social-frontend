@@ -14,55 +14,45 @@ import PerfilEdit from "./pages/PerfilEdit";
 import { useState, useEffect } from "react";
 import { UserContext } from "./context/UserContext";
 import { UsuariosProvider } from "./context/UsuariosContext";
-// Creamos el contexto de usuario que será compartido globalmente
+
+const getStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (error) {
+    console.error("No se pudo recuperar la sesión guardada:", error);
+    localStorage.removeItem("user");
+    return null;
+  }
+};
 
 function App() {
-  // Estado global para el usuario logueado.
-  // Al iniciar la app, intenta cargarlo desde localStorage.
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getStoredUser);
 
-  // Cada vez que el estado "user" cambia, lo guarda o elimina del localStorage
   useEffect(() => {
     if (user) {
-      localStorage.setItem("user", JSON.stringify(user)); // Guarda el usuario en localStorage
+      localStorage.setItem("user", JSON.stringify(user));
     } else {
-      localStorage.removeItem("user"); // Elimina si no hay usuario (ej: logout)
+      localStorage.removeItem("user");
     }
-  }, [user]); // Se ejecuta solo cuando cambia "user"
+  }, [user]);
 
   return (
-    //Provee el estado de los usuarios a toda la app
     <UsuariosProvider>
-      {// Provee el estado del usuario (user y setUser) a toda la app usando
-      //Context
-      }
       <UserContext.Provider value={{ user, setUser }}>
-        {/* Envolvemos todo con Router para manejar rutas */}
         <Router>
-          {/* Contenedor principal que ocupa al menos el alto total de la ventana */}
           <div className="d-flex flex-column min-vh-100">
-            {/* Componente de cabecera (siempre visible) */}
             <Header />
-
-            {/* Contenido principal de cada ruta (crece para empujar el footer hacia abajo) */}
             <main className="flex-grow-1">
               <Routes>
-                <Route path="/" element={<Inicio />} /> {/* Página de inicio */}
-                <Route path="/login" element={<Login />} />{" "}
-                {/* Página de login */}
-                <Route path="/registro" element={<Registro />} />{" "}
-                {/* Página de registro */}
-                <Route path="/users/:userId" element={<Perfil />} />{" "}
-                {/* Página de perfil del usuario */}
-                <Route path="/editar-perfil" element={<PerfilEdit />} />{" "}
-                {/* Página para editar perfil */}
-                {/* Redirige cualquier ruta no definida a la página de inicio */}
-                <Route path="/*" element={<Navigate to="/" />} />{" "}
-                {/* Redirige todo lo no definido a / */}
+                <Route path="/" element={<Inicio />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Registro />} />
+                <Route path="/users/:userId" element={<Perfil />} />
+                <Route path="/editar-perfil" element={<PerfilEdit />} />
+                <Route path="/*" element={<Navigate to="/" />} />
               </Routes>
             </main>
-
-            {/* Componente de pie de página (siempre visible y al final) */}
             <Footer />
           </div>
         </Router>
