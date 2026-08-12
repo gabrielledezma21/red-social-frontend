@@ -28,7 +28,8 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
 
             if (!resPost.ok) throw new Error("Error al actualizar el post");
 
-            // 2. Eliminar imágenes anteriores
+            // 2. Reemplazar imágenes anteriores solo cuando se seleccionaron nuevas
+            if (imagenes.length > 0) {
             for (const img of editandoImagenes) {
                 if (!img?._id) continue;
 
@@ -41,7 +42,7 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
                 }
             }
 
-            // 3. Subir nuevas imágenes si hay
+            // 3. Subir las nuevas imágenes
             if (imagenes.length > 0) {
                 const formData = new FormData();
                 formData.append("postId", post._id);
@@ -55,6 +56,7 @@ const FormEditarPost = ({ post, onCancel, onSuccess }) => {
                 });
 
                 if (!resUpload.ok) throw new Error("Error al subir nuevas imágenes");
+            }
             }
 
             alert("¡Post actualizado exitosamente!");
