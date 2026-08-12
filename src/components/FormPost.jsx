@@ -1,247 +1,149 @@
-import { Card, Button, Form, Row, Col} from 'react-bootstrap';
-import { useState, useEffect } from 'react';
-import FormTag from './FormTag';
+import { Card, Button, Form } from "react-bootstrap";
+import { useEffect, useState } from "react";
+import FormTag from "./FormTag";
+import { API_URL, apiEndpoints } from "../config/api";
 
-const FormPost = ({ user, onPostCreado }) => {
-    const [content, setContent] = useState("");
-    const [imagenes, setImagenes] = useState([]);
-    const [tags, setTags] = useState([]);
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [showTagModal, setShowTagModal] = useState(false);
+const FormPost = ({ user }) => {
+  const [content, setContent] = useState("");
+  const [imagenes, setImagenes] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-        return () => clearInterval(timer);
-    }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
-    const handleImageChange = (e) => {
-        const files = Array.from(e.target.files);
-        setImagenes(files);
-    };
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const normalizedContent = content.trim();
 
-    const agregarTag = () => {
-        setShowTagModal(true);
-    };
+    if (!normalizedContent && imagenes.length === 0) {
+      alert("Debes escribir algo o subir una imagen.");
+      return;
+    }
+    if (normalizedContent.length > 0 && normalizedContent.length < 5) {
+      alert("La publicación debe tener al menos 5 caracteres.");
+      return;
+    }
 
-    const cerrarTagModal = () => {
-        setShowTagModal(false);
-    };
+    setSubmitting(true);
+    try {
+      const responsePost = await fetch(`${API_URL}${apiEndpoints.posts}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          content: normalizedContent,
+          fecha: currentTime.toISOString(),
+        }),
+      });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+      const postBody = await responsePost.json().catch(() => ({}));
+      if (!responsePost.ok) {
+        throw new Error(postBody.error || "Error al crear el post");
+      }
 
-        if (!content && imagenes.length === 0) {
-            alert("Debes escribir algo o subir una imagen.");
-            return;
-        }
+      await Promise.all(
+        tags.map(async (tag) => {
+          const response = await fetch(
+            `${API_URL}${apiEndpoints.posts}/${postBody._id}/tags/${tag._id}`,
+            { method: "POST" },
+          );
+          if (!response.ok) throw new Error(`No se pudo asociar #${tag.nameTag}`);
+        }),
+      );
 
-        try {
-            const nuevoPost = {
-                userId: user._id,
-                content,
-                fecha: currentTime.toISOString()
-            };
-            console.log("Payload del post:", nuevoPost);
-            const responsePost = await fetch("http://localhost:3001/posts", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(nuevoPost)
-            });
+      if (imagenes.length > 0) {
+        const formData = new FormData();
+        formData.append("postId", postBody._id);
+        imagenes.forEach((image) => formData.append("imagenes", image));
 
-            if (!responsePost.ok) throw new Error("Error al crear el post");
+        const responseArchivos = await fetch(
+          `${API_URL}${apiEndpoints.archives}`,
+          { method: "POST", body: formData },
+        );
+        if (!responseArchivos.ok) throw new Error("Error al subir imágenes");
+      }
 
-            const postCreado = await responsePost.json();
+      alert("¡Publicación realizada con éxito!");
+      setContent("");
+      setImagenes([]);
+      setTags([]);
+      window.dispatchEvent(new Event("nuevo-post-creado"));
+    } catch (error) {
+      console.error("Error al publicar:", error);
+      alert(error.message || "Ocurrió un error al intentar publicar.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-            if (imagenes.length > 0) {
-                const formData = new FormData();
-                formData.append("postId", postCreado._id);
-                imagenes.forEach((img) => {
-                    formData.append("imagenes", img);
-                });
+  return (
+    <>
+      <Form onSubmit={handleSubmit}>
+        <Card className="mx-auto my-5 bg-dark text-light" style={{ width: "100%", maxWidth: "800px" }}>
+          <Card.Header className="p-3">
+            <div className="d-flex gap-3 justify-content-between align-items-center flex-wrap">
+              <div>
+                <Card.Title className="mb-1">@{user.nickName}</Card.Title>
+                <Card.Subtitle className="text-secondary small">
+                  {currentTime.toLocaleString()}
+                </Card.Subtitle>
+              </div>
+              <Button variant="outline-success" size="sm" type="button" onClick={() => setShowTagModal(true)}>
+                Agregar Tags
+              </Button>
+            </div>
+            {tags.length > 0 && (
+              <div className="d-flex flex-wrap gap-1 mt-3">
+                {tags.map((tag) => (
+                  <span key={tag._id} className="badge bg-success">#{tag.nameTag}</span>
+                ))}
+              </div>
+            )}
+          </Card.Header>
 
-                const responseArchivos = await fetch("http://localhost:3001/archives", {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (!responseArchivos.ok) {
-                    throw new Error("Error al subir imágenes");
-                }
-                await responseArchivos.json();
-            }
-
-            alert("¡Publicación realizada con éxito!");
-            setContent("");
-            setImagenes([]);
-            setTags([]);
-            window.dispatchEvent(new Event("nuevo-post-creado"));
-        } catch (error) {
-            console.error("Error al publicar:", error);
-            alert("Ocurrió un error al intentar publicar.");
-        }
-    };
-
-    return (
-        <>
-            <Form onSubmit={handleSubmit}>
-                <Card 
-                    className="mx-auto my-5 bg-dark text-light" 
-                    style={{ 
-                        minHeight: '10rem', 
-                        width: '100%',
-                        maxWidth: 'min(90vw, 800px)' // Responsive sin clases Bootstrap
-                    }}
-                >
-                    {/* ✅ Card.Header con Flexbox */}
-                    <Card.Header className='text-light p-3'>
-                        {/* Contenedor principal - Responsive con Flexbox */}
-                        <div 
-                            className="d-flex gap-3"
-                            style={{
-                                flexDirection: window.innerWidth < 576 ? 'column' : 'row',
-                                alignItems: window.innerWidth < 576 ? 'stretch' : 'center'
-                            }}
-                        >
-                            {/* Información del usuario */}
-                            <div 
-                                className="d-flex flex-column"
-                                style={{ 
-                                    flex: window.innerWidth >= 768 ? '1' : 'none',
-                                    minWidth: 0 // Para permitir que el texto se corte
-                                }}
-                            >
-                                <Card.Title 
-                                    className="text-light mb-1"
-                                    style={{ 
-                                        fontSize: window.innerWidth < 576 ? '1rem' : '1.1rem'
-                                    }}
-                                >
-                                    @{user.nickName}
-                                </Card.Title>
-                                <Card.Subtitle className="text-secondary small">
-                                    {currentTime.toLocaleString(undefined, {
-                                        dateStyle: 'short',
-                                        timeStyle: 'short'
-                                    })}
-                                </Card.Subtitle>
-                            </div>
-                            
-                            {/* Botón Agregar Tag */}
-                            <div 
-                                className="d-flex"
-                                style={{
-                                    justifyContent: window.innerWidth < 576 ? 'center' : 'flex-end',
-                                    alignSelf: window.innerWidth < 576 ? 'stretch' : 'center'
-                                }}
-                            >
-                                <Button 
-                                    variant="outline-success" 
-                                    size="sm" 
-                                    onClick={agregarTag}
-                                    style={{
-                                        width: window.innerWidth < 576 ? '100%' : 'auto',
-                                        whiteSpace: 'nowrap'
-                                    }}
-                                >
-                                    {/* Texto adaptivo */}
-                                    {window.innerWidth >= 768 ? 'Agregar Tag' : '+ Tag'}
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Tags seleccionados */}
-                        {tags && tags.length > 0 && (
-                            <div className="mt-3">
-                                <div className="d-flex flex-wrap gap-2 align-items-center">
-                                    <small className="text-muted">Tags:</small>
-                                    <div className="d-flex flex-wrap gap-1">
-                                        {tags.map((tag, index) => (
-                                            <span 
-                                                key={index} 
-                                                className="badge bg-success"
-                                                style={{ fontSize: '0.8rem' }}
-                                            >
-                                                #{tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </Card.Header>
-
-                    {/* ✅ Card.Body con Flexbox */}
-                    <Card.Body className="text-light">
-                        <div className="d-flex flex-column gap-3">
-                            {/* Input de archivos */}
-                            <Form.Group controlId="formFile">
-                                <Form.Control
-                                    className="bg-dark text-light"
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageChange}
-                                />
-                                {imagenes.length > 0 && (
-                                    <Form.Text className="text-success small mt-1 d-block">
-                                        {imagenes.length} imagen(es) seleccionada(s)
-                                    </Form.Text>
-                                )}
-                            </Form.Group>
-
-                            {/* Textarea del contenido */}
-                            <Form.Control
-                                as="textarea"
-                                rows={window.innerWidth < 768 ? 3 : 4}
-                                className="bg-dark text-light border-secondary"
-                                placeholder="¿Qué estás pensando publicar?"
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                style={{ 
-                                    resize: 'vertical',
-                                    minHeight: '80px'
-                                }}
-                            />
-                            
-                            {/* Contador de caracteres */}
-                            <Form.Text className="text-muted small text-end">
-                                {content.length}/500 caracteres
-                            </Form.Text>
-                        </div>
-                    </Card.Body>
-
-                    {/* ✅ Card.Footer con Flexbox */}
-                    <Card.Footer className="bg-dark border-secondary p-3">
-                        <div className="d-flex justify-content-center">
-                            <Button 
-                                variant="primary" 
-                                type="submit"
-                                size={window.innerWidth < 576 ? 'lg' : 'md'}
-                                disabled={!content && imagenes.length === 0}
-                                style={{
-                                    width: window.innerWidth < 576 ? '100%' : 'auto',
-                                    minWidth: window.innerWidth >= 576 ? '120px' : 'auto'
-                                }}
-                            >
-                                <i className="bi bi-send me-2"></i>
-                                Publicar
-                            </Button>
-                        </div>
-                    </Card.Footer>
-                </Card>
-            </Form>
-
-            {/* Modal de Tags */}
-            <FormTag
-                show={showTagModal}
-                onHide={cerrarTagModal}
-                user={user}
+          <Card.Body>
+            <Form.Group controlId="formFile" className="mb-3">
+              <Form.Control
+                className="bg-dark text-light"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => setImagenes(Array.from(event.target.files))}
+              />
+            </Form.Group>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              className="bg-dark text-light border-secondary"
+              placeholder="¿Qué estás pensando publicar?"
+              value={content}
+              maxLength={500}
+              onChange={(event) => setContent(event.target.value)}
             />
-        </>
-    );
+            <Form.Text className="text-muted d-block text-end">{content.length}/500 caracteres</Form.Text>
+          </Card.Body>
+
+          <Card.Footer className="bg-dark border-secondary p-3 text-center">
+            <Button variant="primary" type="submit" disabled={submitting || (!content.trim() && imagenes.length === 0)}>
+              {submitting ? "Publicando..." : "Publicar"}
+            </Button>
+          </Card.Footer>
+        </Card>
+      </Form>
+
+      <FormTag
+        show={showTagModal}
+        onHide={() => setShowTagModal(false)}
+        onTagsSelected={setTags}
+        selectedTags={tags}
+      />
+    </>
+  );
 };
 
 export default FormPost;
-
