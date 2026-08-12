@@ -3,124 +3,94 @@ import Post from '../Post';
 import Comment from '../Comment';
 import FormPost from '../FormPost';
 import { getFunctions } from '../functions';
-import { useEffect, useState, useContext } from 'react';
+import { useCallback, useEffect, useState, useContext } from 'react';
 import { UserContext } from '../../context/UserContext';
 
 const ProfileContent = ({ activeTab }) => {
   const { user } = useContext(UserContext);
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadProfileData = useCallback(async () => {
+    if (!user?._id) return;
+
+    try {
+      setLoading(true);
+      const [userPosts, userComments] = await Promise.all([
+        getFunctions.getPostsFromUser(user._id),
+        getFunctions.getCommentsFromUser(user._id),
+      ]);
+      setPosts(userPosts);
+      setComments(userComments);
+    } catch (error) {
+      console.error("Error al cargar el perfil:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?._id]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const userPosts = await getFunctions.getPostsFromUser(user._id);
-        setPosts(userPosts);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      }
-    };
+    loadProfileData();
 
-    const fetchComments = async () => {
-      try {
-        const userComments = await getFunctions.getCommentsFromUser(user._id);
-        setComments(userComments);
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-      }
-    };
+    const events = [
+      "recargar-profile-content",
+      "nuevo-post-eliminado",
+      "nuevo-post-creado",
+      "nuevo-comment-eliminado",
+      "comentarios-actualizados",
+      "nuevo-comentario-creado",
+    ];
+    events.forEach((eventName) => window.addEventListener(eventName, loadProfileData));
 
-    fetchPosts();
-    fetchComments();
-  }, [user._id]);
-
-  useEffect(() => {
-    const handleReload = () => {
-      console.log("🔄 Recargando datos del perfil...");
-      const fetchPosts = async () => {
-        try {
-          const userPosts = await getFunctions.getPostsFromUser(user._id);
-          setPosts(userPosts);
-        } catch (error) {
-          console.error("Error fetching posts:", error);
-        }
-      };
-
-      const fetchComments = async () => {
-        try {
-          const userComments = await getFunctions.getCommentsFromUser(user._id);
-          setComments(userComments);
-        } catch (error) {
-          console.error("Error fetching comments:", error);
-        }
-      };
-
-      fetchPosts();
-      fetchComments();
-    };
-
-    window.addEventListener("recargar-profile-content", handleReload);
-    window.addEventListener("nuevo-post-eliminado", handleReload);
-    window.addEventListener("nuevo-post-creado", handleReload);
-    window.addEventListener("nuevo-comment-eliminado", handleReload);
-    window.addEventListener("comentarios-actualizados", handleReload);
     return () => {
-      window.removeEventListener("recargar-profile-content", handleReload)
-      window.removeEventListener("nuevo-post-eliminado", handleReload);
-      window.removeEventListener("nuevo-post-creado", handleReload);
-      window.removeEventListener("nuevo-comment-eliminado", handleReload);
-      window.removeEventListener("comentarios-actualizados", handleReload);
+      events.forEach((eventName) => window.removeEventListener(eventName, loadProfileData));
     };
-  }, [user._id]);
+  }, [loadProfileData]);
 
-  if (!user) return <div>Cargando...</div>;
+  if (!user) return null;
+  if (loading && posts.length === 0 && comments.length === 0) {
+    return <Alert variant="info">Cargando perfil...</Alert>;
+  }
 
-  return (
-    <>
-      {activeTab === 'posts' && (
-        <>
-          <FormPost user={user} />
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <Post
-                key={post._id}
-                user={user}
-                post={post}
-                tags={post.tags || []}
-              />
-            ))
-          ) : (
-            <Alert variant="info">No hay posts</Alert>
-          )}
-        </>
-      )}
-
-      {activeTab === 'comments' && (
-        comments.length > 0 ? (
-          comments.map((comment) => (
-            <Comment
+  if (activeTab === 'posts') {
+    return (
+      <>
+        <FormPost user={user} />
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <Post
+              key={post._id}
               user={user}
-              comment={comment}
-              key={comment._id}
-              onDeleted={(commentId) =>
-                setComments((previousComments) =>
-                  previousComments.filter((item) => item._id !== commentId)
-                )
-              }
-              onUpdated={(updatedComment) =>
-                setComments((previousComments) =>
-                  previousComments.map((item) =>
-                    item._id === updatedComment._id ? updatedComment : item
-                  )
-                )
-              }
+              post={post}
+              tags={post.tags || []}
             />
           ))
         ) : (
-          <Alert variant="info">No hay comentarios</Alert>
-        )
-      )}
-    </>
+          <Alert variant="info">No hay posts</Alert>
+        )}
+      </>
+    );
+  }
+
+  return comments.length > 0 ? (
+    comments.map((comment) => (
+      <Comment
+        user={user}
+        comment={comment}
+        key={comment._id}
+        onDeleted={(commentId) =>
+          setComments((current) => current.filter((item) => item._id !== commentId))
+        }
+        onUpdated={(updatedComment) =>
+          setComments((current) =>
+            current.map((item) => item._id === updatedComment._id ? updatedComment : item)
+          )
+        }
+      />
+    ))
+  ) : (
+    <Alert variant="info">No hay comentarios</Alert>
   );
 };
 
