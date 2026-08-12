@@ -5,7 +5,7 @@ import { useState, useContext } from "react";
 import CommentsModal from "./CommentsModal";
 import FormEditarPost from "./FormEditarPost";
 import { UserContext } from "../context/UserContext";
-import Tag from './Tag';
+import Tag from './Tag';\nimport { formatDateTime } from '../utils/formatDateTime';
 
 const Post = ({post, tags, user: postUser }) => {
   const [showModal, setShowModal] = useState(false);
@@ -53,7 +53,7 @@ const Post = ({post, tags, user: postUser }) => {
                   @{postUser?.nickName || "Usuario"}
                 </Card.Title>
                 <Card.Subtitle className="text-secondary small">
-                  {post.fecha}
+                  {formatDateTime(post.fecha)}
                 </Card.Subtitle>
               </div>
             </Col>
