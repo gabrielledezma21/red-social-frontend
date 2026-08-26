@@ -1,99 +1,133 @@
-# Frontend - Red Social
+# Red Social · Frontend
 
-Una aplicación web de red social desarrollada con React y Vite como proyecto académico para las materias **Construcción de Interfaces** y **Estrategia De Persistencia** de la Universidad Nacional de Hurlingham (UNAHUR).
+Aplicación web desarrollada en equipo para crear perfiles, publicar contenido y participar mediante comentarios y etiquetas. Este repositorio contiene la interfaz construida con React; consume una API REST desarrollada con Node.js, Express y MongoDB.
 
-## Contexto Académico
+El proyecto fue realizado en la Universidad Nacional de Hurlingham (UNAHUR) para integrar conocimientos de construcción de interfaces y estrategias de persistencia en una aplicación full stack.
 
-- **Universidad**: Universidad Nacional de Hurlingham (UNAHUR)
-- **Materia**: Construcción de Interfaces y Estrategia de Persistencia
-- **Año**: 2025
-- **Proyecto**: Sistema completo de red social con frontend y backend
+## Funcionalidades principales
 
-## Integrantes
-
-- Gonzalvez Chala, Victor.
-- Ledezma, Gabriel.
-- Santana, Lucas.
-- Viltez, Hernan.
-
-## Características
-
-- **Autenticación completa**: Registro e inicio de sesión de usuarios
-- **Gestión de posts**: Crear, editar y eliminar publicaciones
-- **Sistema de comentarios**: Interacción entre usuarios
-- **Perfiles personalizados**: Visualización y edición de perfiles
-- **Sistema de etiquetas**: Categorización de contenido
-- **Interfaz responsiva**: Diseño adaptable con Bootstrap
-- **SPA (Single Page Application)**: Navegación fluida sin recargas
+- Registro e inicio de sesión.
+- Visualización y edición de perfiles.
+- Creación, edición y eliminación de publicaciones.
+- Asociación de imágenes y etiquetas a las publicaciones.
+- Comentarios e interacción entre usuarios.
+- Navegación SPA con rutas de React.
+- Interfaz responsive construida con React Bootstrap.
+- Integración con una API REST y persistencia en MongoDB.
 
 ## Tecnologías
 
-- React 19.1.0
-- Vite 6.3.5
-- React Router DOM
-- Bootstrap 5.3.7
+| Área | Tecnología |
+| --- | --- |
+| Interfaz | React 19 |
+| Build | Vite 6 |
+| Navegación | React Router 7 |
+| Componentes y estilos | React Bootstrap + Bootstrap 5 |
+| Backend relacionado | Node.js + Express |
+| Base de datos | MongoDB + Mongoose |
+| Documentación de API | Swagger / OpenAPI |
+| Entorno | Docker |
 
-## Arquitectura del Proyecto
+## Arquitectura
 
-Este frontend forma parte de una arquitectura completa que incluye:
+La solución se divide en dos aplicaciones:
 
-- **Frontend**: React con Vite (este repositorio)
-- **Backend**: API REST con Node.js y Express
-- **Base de datos**: MongoDB con Mongoose
-- **Contenedores**: Docker para el entorno de desarrollo
+- **Frontend:** este repositorio, responsable de las vistas, navegación, formularios, estado de sesión e integración HTTP.
+- **Backend:** [anti-social-mongo-4-bits](https://github.com/gabrielledezma21/anti-social-mongo-4-bits), API REST responsable de las reglas de negocio, validaciones y persistencia.
 
-## Instalación
+El frontend centraliza la URL de la API mediante variables de entorno. Las operaciones relacionadas con usuarios, publicaciones, comentarios y etiquetas se realizan a través de funciones de acceso a datos separadas de las vistas.
 
-1. Clonar el repositorio del front y del back.
-2. Instalar dependencias:
-   ```bash
-   npm install
-   ```
-3. Correr el docker:
-   ```bash
-   docker compose up
-   ```
-4. Ejecutar las semillas en el back:
-   ```bash
-   npm run db
-   ```
-5. Ejecutar en desarrollo el back:
-   ```bash
-   npm run dev
-   ```
-6. Ejecutar en desarrollo el front:
-   ```bash
-   npm run dev
-   ```
+## Estructura principal
 
-## Configuración
+```text
+src/
+├── assets/                  # Recursos estáticos
+├── components/
+│   ├── functions/          # Integración con la API
+│   ├── home/               # Componentes del inicio y publicaciones
+│   ├── profile/            # Componentes de perfiles
+│   └── FormLogin-components/
+├── config/                  # Configuración de la API
+├── context/                 # Estado compartido
+└── pages/                   # Vistas principales
+```
 
-La aplicación estará disponible en `http://localhost:5173`
+## Ejecución local
 
-El frontend se conecta al backend en `http://localhost:3001` por defecto.
+### Requisitos
 
-Para cambiar la configuración, crear un archivo `.env`:
+- Node.js.
+- npm.
+- Backend de la red social en ejecución.
+
+### Instalación
+
+```bash
+git clone https://github.com/gabrielledezma21/red-social-frontend.git
+cd red-social-frontend
+npm install
+```
+
+Crear un archivo `.env`:
+
 ```env
 VITE_API_URL=http://localhost
 VITE_API_PORT=3001
 ```
 
-## Estructura del proyecto
+Iniciar el frontend:
 
-```
-src/
-├── components/           # Componentes reutilizables
-│   ├── functions/       # Funciones de API (CRUD)
-│   ├── home/           # Componentes de página inicio
-│   ├── profile/        # Componentes de perfil
-│   └── FormLogin-components/ # Componentes de formularios
-├── pages/              # Páginas principales de la aplicación
-├── context/            # Contextos de React para manejo de estado
-├── config/             # Configuración de la API
-└── assets/             # Recursos estáticos (imágenes, etc.)
+```bash
+npm run dev
 ```
 
+La aplicación queda disponible normalmente en:
 
-## Nota
+```text
+http://localhost:5173
+```
 
-Asegúrate de tener el backend de la red social ejecutándose antes de iniciar el frontend.
+## Scripts
+
+| Comando | Uso |
+| --- | --- |
+| `npm run dev` | Inicia el servidor de desarrollo |
+| `npm run build` | Genera el build de producción |
+| `npm run lint` | Ejecuta ESLint |
+| `npm run preview` | Previsualiza el build generado |
+
+## Despliegue
+
+El proyecto incluye una configuración para Vercel que permite resolver correctamente las rutas internas de la SPA al recargar el navegador.
+
+En producción se deben configurar `VITE_API_URL` y `VITE_API_PORT` de acuerdo con la dirección pública del backend.
+
+## Trabajo en equipo
+
+El proyecto fue construido por un equipo de cuatro integrantes utilizando Git, ramas e integración de cambios entre frontend y backend.
+
+### Integrantes
+
+- Víctor Gonzalvez Chala.
+- Gabriel Ledezma.
+- Lucas Santana.
+- Hernán Viltez.
+
+## Aprendizajes principales
+
+- Integración de una SPA con una API REST.
+- Separación de componentes, páginas, contexto y acceso a datos.
+- Modelado de publicaciones, comentarios, imágenes y etiquetas.
+- Coordinación de contratos entre frontend y backend.
+- Resolución de conflictos e integración de cambios con Git.
+- Despliegue de una aplicación full stack.
+
+## Contexto académico
+
+- **Universidad:** Universidad Nacional de Hurlingham.
+- **Materias:** Construcción de Interfaces y Estrategias de Persistencia.
+- **Año:** 2025.
+
+## Autoría
+
+Proyecto grupal desarrollado en UNAHUR. Este repositorio es mantenido en la cuenta de [Gabriel Ledezma](https://github.com/gabrielledezma21).
